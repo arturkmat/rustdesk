@@ -90,4 +90,18 @@ fn main() {
         println!("cargo:rustc-link-lib=framework=ApplicationServices");
     }
     println!("cargo:rerun-if-changed=build.rs");
+    for key in [
+        "RENDEZVOUS_SERVER",
+        "RELAY_SERVER",
+        "API_SERVER",
+        "RS_PUB_KEY",
+    ] {
+        println!("cargo:rerun-if-env-changed={key}");
+        if let Ok(value) = std::env::var(key) {
+            let value = value.trim();
+            if !value.is_empty() {
+                println!("cargo:rustc-env={key}={value}");
+            }
+        }
+    }
 }
