@@ -146,6 +146,10 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Apply custom branding
+        shell: bash
+        run: bash custom/apply-branding.sh
+
       - name: Restore bridge files
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
@@ -437,6 +441,10 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Apply custom branding
+        shell: bash
+        run: bash custom/apply-branding.sh
+
       - name: Install LLVM and Clang
         uses: rustdesk-org/install-llvm-action-32bit@6aa7d9ad3df84dff01cd4596dd0fc880a7f47fce # no release tag; commit 2026-05-26
         with:
@@ -588,6 +596,10 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Apply custom branding
+        shell: bash
+        run: bash custom/apply-branding.sh
+
       - name: Install flutter
         uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
@@ -714,6 +726,10 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           submodules: recursive
+
+      - name: Apply custom branding
+        shell: bash
+        run: bash custom/apply-branding.sh
 
       - name: Import the codesign cert
         if: env.MACOS_P12_BASE64 != null
@@ -1029,6 +1045,10 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Apply custom branding
+        shell: bash
+        run: bash custom/apply-branding.sh
+
       - name: Install flutter
         uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
@@ -1302,6 +1322,10 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Apply custom branding
+        shell: bash
+        run: bash custom/apply-branding.sh
+
       - name: Install flutter
         uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
@@ -1468,6 +1492,10 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           submodules: recursive
+
+      - name: Apply custom branding
+        shell: bash
+        run: bash custom/apply-branding.sh
 
       - name: Set Swap Space
         if: ${{ matrix.job.arch == 'x86_64' }}
@@ -1787,6 +1815,10 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Apply custom branding
+        shell: bash
+        run: bash custom/apply-branding.sh
+
       - name: Set Swap Space
         uses: pierotofy/set-swap-space@49819abfb41bd9b44fb781159c033dba90353a7c # v1.0
         with:
@@ -2067,6 +2099,10 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Apply custom branding
+        shell: bash
+        run: bash custom/apply-branding.sh
+
       - name: Modify vcpkg.json for armv7
         if: matrix.job.vcpkg-triplet == 'arm-linux'
         run: |
@@ -2268,6 +2304,10 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Apply custom branding
+        shell: bash
+        run: bash custom/apply-branding.sh
+
       - name: Download Binary
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
@@ -2342,6 +2382,10 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Apply custom branding
+        shell: bash
+        run: bash custom/apply-branding.sh
+
       - name: Download Binary
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
@@ -2402,6 +2446,10 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           submodules: recursive
+
+      - name: Apply custom branding
+        shell: bash
+        run: bash custom/apply-branding.sh
 
       - name: Prepare env
         run: |
