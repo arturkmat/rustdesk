@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DARK-SMART Remote — pobierz instalator</title>
+  <meta name="description" content="Zdalny pulpit DARK-SMART. Instalator z własnym serwerem remote.dark-smart.pl.">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #050806;
+      --bg-2: #0b120e;
+      --panel: #101812;
+      --line: #1d2a21;
+      --green: #009745;
+      --green-2: #12c463;
+      --text: #e9f3ec;
+      --muted: #8aa193;
+      --warn: #e7c27a;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: Manrope, system-ui, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1200px 500px at 50% -10%, rgba(0, 151, 69, 0.18), transparent 55%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
+    }
+    .wrap {
+      width: min(920px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 48px 0 80px;
+    }
+    header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 18px;
+    }
+    .logo {
+      width: 168px;
+      height: 168px;
+      object-fit: contain;
+      filter: drop-shadow(0 18px 40px rgba(0, 151, 69, 0.28));
+    }
+    h1 {
+      font-family: Fraunces, Georgia, serif;
+      font-size: clamp(2rem, 5vw, 3.4rem);
+      letter-spacing: 0.08em;
+      margin: 0;
+      font-weight: 700;
+    }
+    .lede {
+      max-width: 34rem;
+      color: var(--muted);
+      font-size: 1.05rem;
+      line-height: 1.55;
+      margin: 0;
+    }
+    .lede strong { color: var(--text); font-weight: 600; }
+    .hero-actions {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+    }
+    .btn {
+      appearance: none;
+      border: 0;
+      border-radius: 999px;
+      padding: 14px 22px;
+      font: inherit;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .btn-primary {
+      background: var(--green);
+      color: #041108;
+    }
+    .btn-primary:hover { background: var(--green-2); }
+    .btn-ghost {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--line);
+    }
+    .btn-ghost:hover { border-color: var(--green); }
+    .meta {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    .status {
+      margin-top: 28px;
+      text-align: center;
+      color: var(--muted);
+      min-height: 1.4em;
+    }
+    .status.error { color: #e58b8b; }
+    section.grid {
+      margin-top: 48px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 14px;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 18px 18px 14px;
+      min-height: 180px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .card h2 {
+      margin: 0;
+      font-size: 1.05rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+    .files {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: auto;
+    }
+    .file {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      color: var(--text);
+      text-decoration: none;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 9px 12px;
+      font-size: 0.86rem;
+    }
+    .file:hover { border-color: var(--green); }
+    .file span { color: var(--muted); white-space: nowrap; }
+    .empty {
+      color: var(--warn);
+      font-size: 0.9rem;
+    }
+    footer {
+      margin-top: 56px;
+      color: var(--muted);
+      text-align: center;
+      font-size: 0.88rem;
+      line-height: 1.6;
+    }
+    footer a { color: var(--green-2); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <img class="logo" src="logo.png" alt="DARK-SMART">
+      <h1>DARK-SMART</h1>
+      <p class="lede">Zdalny pulpit gotowy do pracy. Instalator jest już spięty z serwerem <strong>remote.dark-smart.pl</strong> — bez ręcznej konfiguracji.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" id="primary" href="https://github.com/arturkmat/rustdesk/releases/tag/nightly">Pobierz instalator</a>
+        <a class="btn btn-ghost" href="https://github.com/arturkmat/rustdesk/releases/tag/nightly">Wszystkie pliki</a>
+      </div>
+      <p class="meta" id="detected"></p>
+    </header>
+
+    <p class="status" id="status">Szukam najnowszych instalatorów…</p>
+
+    <section class="grid" aria-label="Instalatory">
+      <article class="card" data-os="windows">
+        <h2>Windows</h2>
+        <p>MSI albo przenośny EXE, 64-bit.</p>
+        <div class="files"></div>
+      </article>
+      <article class="card" data-os="macos">
+        <h2>macOS</h2>
+        <p>Obraz DMG dla Intela i Apple Silicon.</p>
+        <div class="files"></div>
+      </article>
+      <article class="card" data-os="linux">
+        <h2>Linux</h2>
+        <p>DEB, RPM, AppImage i pozostałe paczki.</p>
+        <div class="files"></div>
+      </article>
+      <article class="card" data-os="android">
+        <h2>Android</h2>
+        <p>APK na telefon i tablet.</p>
+        <div class="files"></div>
+      </article>
+    </section>
+
+    <footer>
+      Klient DARK-SMART łączy się tylko z własnym serwerem firmy.<br>
+      Źródło: <a href="https://github.com/arturkmat/rustdesk">github.com/arturkmat/rustdesk</a>
+    </footer>
+  </div>
+  <script>
+    const REPO = "arturkmat/rustdesk";
+    const RELEASE_TAG = "nightly";
+
+    const cards = {
+      windows: document.querySelector('[data-os="windows"] .files'),
+      macos: document.querySelector('[data-os="macos"] .files'),
+      linux: document.querySelector('[data-os="linux"] .files'),
+      android: document.querySelector('[data-os="android"] .files'),
+    };
+
+    function platform() {
+      const ua = navigator.userAgent;
+      const platform = navigator.platform || "";
+      if (/Android/i.test(ua)) return { os: "android", arch: "aarch64" };
+      if (/Win/i.test(platform) || /Windows/i.test(ua)) {
+        return { os: "windows", arch: /ARM|aarch64/i.test(ua) ? "aarch64" : "x86_64" };
+      }
+      if (/Mac/i.test(platform) || /Mac OS/i.test(ua)) {
+        return { os: "macos", arch: /ARM|aarch64/i.test(ua) ? "aarch64" : "x86_64" };
+      }
+      if (/Linux/i.test(platform) || /Linux/i.test(ua)) {
+        return { os: "linux", arch: /aarch64|arm64/i.test(ua + platform) ? "aarch64" : "x86_64" };
+      }
+      return { os: "windows", arch: "x86_64" };
+    }
+
+    function classify(name) {
+      const n = name.toLowerCase();
+      if (!n.startsWith("rustdesk-")) return null;
+      if (n.includes("sbom") || n.includes("unsigned") || n.endsWith(".json")) return null;
+      if (n.endsWith(".msi") || n.endsWith(".exe")) return "windows";
+      if (n.endsWith(".dmg")) return "macos";
+      if (n.endsWith(".apk")) return "android";
+      if (
+        n.endsWith(".deb") ||
+        n.endsWith(".rpm") ||
+        n.endsWith(".appimage") ||
+        n.endsWith(".flatpak") ||
+        n.endsWith(".pkg.tar.zst")
+      ) {
+        return "linux";
+      }
+      return null;
+    }
+
+    function score(asset, want) {
+      const n = asset.name.toLowerCase();
+      let s = 0;
+      if (n.includes(want.arch)) s += 8;
+      if (want.os === "windows") {
+        if (n.endsWith(".msi")) s += 5;
+        if (n.endsWith(".exe") && !n.includes("sciter")) s += 3;
+      }
+      if (want.os === "linux" && n.endsWith(".deb") && !n.includes("sciter")) s += 4;
+      if (want.os === "android" && n.includes("universal")) s += 6;
+      if (n.includes("sciter")) s -= 2;
+      return s;
+    }
+
+    function formatSize(bytes) {
+      if (!bytes) return "";
+      if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + " KB";
+      return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+    }
+
+    function prettyName(name) {
+      const n = name.toLowerCase();
+      const parts = [];
+      if (n.endsWith(".msi")) parts.push("MSI");
+      else if (n.endsWith(".exe")) parts.push(n.includes("sciter") ? "EXE (starszy Windows)" : "EXE");
+      else if (n.endsWith(".dmg")) parts.push("DMG");
+      else if (n.endsWith(".deb")) parts.push("DEB");
+      else if (n.endsWith(".rpm")) parts.push(n.includes("suse") ? "RPM (SUSE)" : "RPM");
+      else if (n.endsWith(".appimage")) parts.push("AppImage");
+      else if (n.endsWith(".flatpak")) parts.push("Flatpak");
+      else if (n.endsWith(".apk")) parts.push("APK");
+      else if (n.endsWith(".pkg.tar.zst")) parts.push("Arch");
+      if (n.includes("universal")) parts.push("uniwersalny");
+      else if (n.includes("aarch64")) parts.push("ARM64");
+      else if (n.includes("armv7")) parts.push("ARMv7");
+      else if (n.includes("x86_64")) parts.push("64-bit");
+      else if (n.includes("-x86-") || n.includes("-x86.")) parts.push("32-bit");
+      if (n.includes("sciter") && !n.endsWith(".exe")) parts.push("Sciter");
+      return parts.join(" · ") || name;
+    }
+
+    function renderFiles(os, assets) {
+      const root = cards[os];
+      root.innerHTML = "";
+      if (!assets.length) {
+        root.innerHTML = '<p class="empty">Jeszcze nie ma paczki w najnowszym wydaniu.</p>';
+        return;
+      }
+      for (const asset of assets.slice(0, 4)) {
+        const a = document.createElement("a");
+        a.className = "file";
+        a.href = asset.browser_download_url;
+        a.innerHTML = `<b>${prettyName(asset.name)}</b><span>${formatSize(asset.size)}</span>`;
+        root.appendChild(a);
+      }
+    }
+
+    async function load() {
+      const status = document.getElementById("status");
+      const primary = document.getElementById("primary");
+      const detected = document.getElementById("detected");
+      const want = platform();
+      const labels = { windows: "Windows", macos: "macOS", linux: "Linux", android: "Android" };
+      detected.textContent = "Wykryty system: " + labels[want.os];
+
+      try {
+        const res = await fetch(`https://api.github.com/repos/${REPO}/releases/tags/${RELEASE_TAG}`);
+        if (!res.ok) throw new Error("Nie udało się odczytać wydania nightly");
+        const release = await res.json();
+        const grouped = { windows: [], macos: [], linux: [], android: [] };
+        for (const asset of release.assets || []) {
+          const os = classify(asset.name);
+          if (os) grouped[os].push(asset);
+        }
+        for (const os of Object.keys(grouped)) {
+          grouped[os].sort((a, b) => score(b, want) - score(a, want));
+          renderFiles(os, grouped[os]);
+        }
+        const best = grouped[want.os][0];
+        if (best) {
+          primary.href = best.browser_download_url;
+          primary.textContent = "Pobierz dla " + labels[want.os];
+          status.textContent = "Najnowsze wydanie: " + (release.name || release.tag_name);
+          status.classList.remove("error");
+        } else {
+          status.textContent = "Dla " + labels[want.os] + " nie ma jeszcze instalatora w wydaniu nightly. Zostawione są dostępne paczki poniżej.";
+        }
+      } catch (err) {
+        status.textContent = "Nie można pobrać listy plików z GitHuba. Użyj strony wydań.";
+        status.classList.add("error");
+        for (const os of Object.keys(cards)) renderFiles(os, []);
+      }
+    }
+
+    load();
+  </script>
+</body>
+</html>

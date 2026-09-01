@@ -6,6 +6,7 @@ on:
     paths-ignore:
     - "docs/**"
     - "README.md"
+    - "pages/**"
   push:
     branches:
       - master
@@ -16,6 +17,7 @@ on:
       - "res/**"
       - "appimage/**"
       - "flatpak/**"
+      - "pages/**"
 
 jobs:
   run-ci:

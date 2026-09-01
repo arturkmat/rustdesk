@@ -19,6 +19,8 @@ cert.pfx
 *jpg
 !custom/
 !custom/**
+!pages/
+!pages/**
 sciter.dll
 **pdb
 src/bridge_generated.rs
