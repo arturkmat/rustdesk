@@ -27,7 +27,6 @@ jobs:
       upload-artifact: true
       upload-tag: "dark-smart"
       build-windows: true
-      build-windows-arm: false
       build-android: true
       build-macos: false
       build-linux: false

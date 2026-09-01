@@ -12,9 +12,6 @@ on:
       build-windows:
         type: boolean
         default: true
-      build-windows-arm:
-        type: boolean
-        default: true
       build-android:
         type: boolean
         default: true
@@ -104,7 +101,7 @@ jobs:
     uses: ./.github/workflows/bridge.yml
 
   build-RustDeskTempTopMostWindow:
-    if: ${{ inputs.build-windows && (matrix.job.platform != 'ARM64' || inputs.build-windows-arm) }}
+    if: ${{ inputs.build-windows }}
     uses: ./.github/workflows/third-party-RustDeskTempTopMostWindow.yml
     strategy:
       fail-fast: false
@@ -126,7 +123,7 @@ jobs:
       target_version: Windows10
 
   build-for-windows-flutter:
-    if: ${{ inputs.build-windows && (matrix.job.arch != 'aarch64' || inputs.build-windows-arm) }}
+    if: ${{ inputs.build-windows }}
     name: ${{ matrix.job.target }}
     needs: [build-RustDeskTempTopMostWindow, generate-bridge]
     runs-on: ${{ matrix.job.os }}
