@@ -174,8 +174,8 @@
       <h1>DARK-SMART</h1>
       <p class="lede">Zdalny pulpit gotowy do pracy. Instalator jest już spięty z serwerem <strong>remote.dark-smart.pl</strong> — bez ręcznej konfiguracji.</p>
       <div class="hero-actions">
-        <a class="btn btn-primary" id="primary" href="https://github.com/arturkmat/rustdesk/releases/tag/nightly">Pobierz instalator</a>
-        <a class="btn btn-ghost" href="https://github.com/arturkmat/rustdesk/releases/tag/nightly">Wszystkie pliki</a>
+        <a class="btn btn-primary" id="primary" href="https://github.com/arturkmat/rustdesk/releases/tag/dark-smart">Pobierz instalator</a>
+        <a class="btn btn-ghost" href="https://github.com/arturkmat/rustdesk/releases/tag/dark-smart">Wszystkie pliki</a>
       </div>
       <p class="meta" id="detected"></p>
     </header>
@@ -185,7 +185,7 @@
     <section class="grid" aria-label="Instalatory">
       <article class="card" data-os="windows">
         <h2>Windows</h2>
-        <p>MSI albo przenośny EXE, 64-bit.</p>
+        <p>MSI/EXE 64-bit oraz EXE 32-bit (starszy Windows).</p>
         <div class="files"></div>
       </article>
       <article class="card" data-os="macos">
@@ -212,7 +212,7 @@
   </div>
   <script>
     const REPO = "arturkmat/rustdesk";
-    const RELEASE_TAG = "nightly";
+    const RELEASE_TAG = "dark-smart";
 
     const cards = {
       windows: document.querySelector('[data-os="windows"] .files'),
@@ -304,7 +304,7 @@
         root.innerHTML = '<p class="empty">Jeszcze nie ma paczki w najnowszym wydaniu.</p>';
         return;
       }
-      for (const asset of assets.slice(0, 4)) {
+      for (const asset of assets.slice(0, 8)) {
         const a = document.createElement("a");
         a.className = "file";
         a.href = asset.browser_download_url;
@@ -323,7 +323,7 @@
 
       try {
         const res = await fetch(`https://api.github.com/repos/${REPO}/releases/tags/${RELEASE_TAG}`);
-        if (!res.ok) throw new Error("Nie udało się odczytać wydania nightly");
+        if (!res.ok) throw new Error("Nie udało się odczytać wydania");
         const release = await res.json();
         const grouped = { windows: [], macos: [], linux: [], android: [] };
         for (const asset of release.assets || []) {
@@ -341,7 +341,7 @@
           status.textContent = "Najnowsze wydanie: " + (release.name || release.tag_name);
           status.classList.remove("error");
         } else {
-          status.textContent = "Dla " + labels[want.os] + " nie ma jeszcze instalatora w wydaniu nightly. Zostawione są dostępne paczki poniżej.";
+          status.textContent = "Dla " + labels[want.os] + " nie ma jeszcze instalatora w tym wydaniu. Zostawione są dostępne paczki poniżej.";
         }
       } catch (err) {
         status.textContent = "Nie można pobrać listy plików z GitHuba. Użyj strony wydań.";

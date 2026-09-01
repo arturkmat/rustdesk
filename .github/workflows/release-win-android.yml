@@ -1,0 +1,34 @@
+name: Release Windows and Android
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - cursor/custom-installers-branding-b151
+    paths:
+      - ".github/workflows/release-win-android.yml"
+      - ".github/workflows/flutter-build.yml"
+      - "src/branding.rs"
+      - "custom/**"
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: release-win-android
+  cancel-in-progress: false
+
+jobs:
+  build:
+    uses: ./.github/workflows/flutter-build.yml
+    secrets: inherit
+    with:
+      upload-artifact: true
+      upload-tag: "dark-smart"
+      build-windows: true
+      build-windows-arm: false
+      build-android: true
+      build-macos: false
+      build-linux: false
+      build-ios: false
