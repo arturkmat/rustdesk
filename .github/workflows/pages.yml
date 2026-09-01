@@ -12,7 +12,6 @@ on:
 
 permissions:
   contents: write
-  pages: write
 
 concurrency:
   group: pages
@@ -32,14 +31,3 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: pages
           force_orphan: true
-
-      - name: Serve site from gh-pages
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          payload='{"build_type":"legacy","source":{"branch":"gh-pages","path":"/"}}'
-          if gh api repos/${{ github.repository }}/pages >/dev/null 2>&1; then
-            echo "$payload" | gh api --method PUT repos/${{ github.repository }}/pages --input -
-          else
-            echo "$payload" | gh api --method POST repos/${{ github.repository }}/pages --input -
-          fi
