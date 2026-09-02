@@ -1,0 +1,39 @@
+name: Release Windows and Android
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  check-secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require server secrets
+        env:
+          RENDEZVOUS_SERVER: ${{ secrets.RENDEZVOUS_SERVER }}
+          RELAY_SERVER: ${{ secrets.RELAY_SERVER }}
+          API_SERVER: ${{ secrets.API_SERVER }}
+          RS_PUB_KEY: ${{ secrets.RS_PUB_KEY }}
+        run: |
+          missing=0
+          for name in RENDEZVOUS_SERVER RELAY_SERVER API_SERVER RS_PUB_KEY; do
+            if [ -z "${!name}" ]; then
+              echo "Missing GitHub Actions secret: $name"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "Add the secrets under Settings → Secrets and variables → Actions, then re-run this workflow."
+            exit 1
+          fi
+
+  build:
+    needs: [check-secrets]
+    uses: ./.github/workflows/flutter-build.yml
+    secrets: inherit
+    with:
+      upload-artifact: true
+      upload-tag: dark-smart
