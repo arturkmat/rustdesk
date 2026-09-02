@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      - cursor/custom-installers-branding-b151
     paths:
       - "pages/**"
       - ".github/workflows/pages.yml"
