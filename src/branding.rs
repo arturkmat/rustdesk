@@ -40,3 +40,12 @@ pub fn apply() {
             .insert(keys::OPTION_HIDE_SERVER_SETTINGS.to_owned(), "Y".to_owned());
     }
 }
+
+/// Keep the API access token off the hbbs punch/relay path.
+///
+/// A non-empty token plus a licence key makes the client run Pro `secure_tcp`
+/// on TCP 21116 before connecting. OSS hbbs ignores the token, and that extra
+/// handshake is what fails while logged-out UDP sessions still work.
+pub fn rendezvous_token(_access_token: &str) -> &str {
+    ""
+}
