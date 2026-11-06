@@ -57,3 +57,25 @@ pub fn locks_server() -> bool {
 pub fn rendezvous_token(_access_token: &str) -> &str {
     ""
 }
+
+pub const UPDATE_OWNER: &str = "arturkmat";
+pub const UPDATE_REPO: &str = "rustdesk";
+pub const UPDATE_TAG: &str = "dark-smart";
+
+pub fn update_release_page_url() -> String {
+    format!("https://github.com/{UPDATE_OWNER}/{UPDATE_REPO}/releases/tag/{UPDATE_TAG}")
+}
+
+pub fn is_fork_update_page(url: &str) -> bool {
+    url.trim_end_matches('/') == update_release_page_url()
+}
+
+pub fn fork_release_api_url() -> String {
+    format!("https://api.github.com/repos/{UPDATE_OWNER}/{UPDATE_REPO}/releases/tags/{UPDATE_TAG}")
+}
+
+pub fn fork_download_url(filename: &str) -> String {
+    format!(
+        "https://github.com/{UPDATE_OWNER}/{UPDATE_REPO}/releases/download/{UPDATE_TAG}/{filename}"
+    )
+}

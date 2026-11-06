@@ -4,6 +4,7 @@ use crate::{
     update_metadata::{UpdateArtifactQuery, UpdateMetadataRequirements, VerifiedUpdateArtifact},
 };
 use hbb_common::{bail, ResultType};
+use serde_derive::Deserialize;
 use std::{
     io::Read,
     path::{Component, Path, PathBuf},
@@ -104,6 +105,9 @@ pub(super) fn verified_update_artifact_from_release_page_url(
     update_url: &str,
     query: &UpdateArtifactQuery<'_>,
 ) -> ResultType<VerifiedUpdateArtifact> {
+    if crate::branding::locks_server() && crate::branding::is_fork_update_page(update_url) {
+        return verified_fork_update_artifact(query);
+    }
     let release_id = release_id_from_update_url(update_url)?;
     let display_version = display_version_from_release_id(&release_id)?;
     let expected_artifact_url_prefix =
@@ -154,6 +158,169 @@ fn read_limited_response_bytes<R: Read>(
     Ok(bytes)
 }
 
+#[derive(Deserialize)]
+struct ForkRelease {
+    assets: Vec<ForkAsset>,
+}
+
+#[derive(Deserialize)]
+struct ForkAsset {
+    name: String,
+    size: u64,
+    digest: Option<String>,
+    browser_download_url: String,
+}
+
+pub fn fork_update_page_if_newer() -> ResultType<Option<String>> {
+    let release = fetch_fork_release()?;
+    let arch = current_update_arch();
+    let current = hbb_common::get_version_number(crate::VERSION);
+    let newer = release.assets.iter().any(|asset| {
+        ["exe", "msi", "dmg"].iter().any(|format| {
+            fork_asset_matches(&asset.name, arch, format)
+                .is_some_and(|version| hbb_common::get_version_number(version) > current)
+        })
+    });
+    if newer {
+        Ok(Some(crate::branding::update_release_page_url()))
+    } else {
+        Ok(None)
+    }
+}
+
+fn verified_fork_update_artifact(
+    query: &UpdateArtifactQuery<'_>,
+) -> ResultType<VerifiedUpdateArtifact> {
+    let release = fetch_fork_release()?;
+    let Some(asset) = release
+        .assets
+        .iter()
+        .filter(|asset| fork_asset_matches(&asset.name, query.arch, query.format).is_some())
+        .max_by(|left, right| {
+            let left_version = fork_asset_matches(&left.name, query.arch, query.format)
+                .map(hbb_common::get_version_number);
+            let right_version = fork_asset_matches(&right.name, query.arch, query.format)
+                .map(hbb_common::get_version_number);
+            left_version.cmp(&right_version)
+        })
+    else {
+        bail!(
+            "No {} {} asset in the fork release",
+            query.arch,
+            query.format
+        );
+    };
+    fork_artifact_from_asset(asset, query.arch, query.format, crate::VERSION)
+}
+
+fn fetch_fork_release() -> ResultType<ForkRelease> {
+    let url = crate::branding::fork_release_api_url();
+    let client = create_http_client_with_url_strict(&url)?;
+    let mut response = client
+        .get(&url)
+        .timeout(UPDATE_SIDECAR_HTTP_REQUEST_TIMEOUT)
+        .header("Accept", "application/vnd.github+json")
+        .header("User-Agent", "arturkmat-rustdesk")
+        .header("X-GitHub-Api-Version", "2022-11-28")
+        .send()?;
+    if !response.status().is_success() {
+        bail!("Failed to read fork release: {}", response.status());
+    }
+    let bytes = read_limited_response_bytes(
+        &mut response,
+        UPDATE_METADATA_SIDECAR_MAX_BYTES,
+        "Fork release",
+    )?;
+    Ok(serde_json::from_slice(&bytes)?)
+}
+
+fn fork_artifact_from_asset(
+    asset: &ForkAsset,
+    arch: &str,
+    format: &str,
+    current_version: &str,
+) -> ResultType<VerifiedUpdateArtifact> {
+    let Some(version) = fork_asset_matches(&asset.name, arch, format) else {
+        bail!("Update asset {} does not match {arch}.{format}", asset.name);
+    };
+    if hbb_common::get_version_number(version) <= hbb_common::get_version_number(current_version) {
+        bail!("Fork release {version} is not newer than {current_version}");
+    }
+    let expected_url = crate::branding::fork_download_url(&asset.name);
+    if asset.browser_download_url != expected_url {
+        bail!("Fork asset URL is not the pinned release download");
+    }
+    if asset.size == 0 {
+        bail!("Fork asset {} has no size", asset.name);
+    }
+    let Some(digest) = asset.digest.as_deref() else {
+        bail!("Fork asset {} has no digest", asset.name);
+    };
+    Ok(VerifiedUpdateArtifact {
+        version: version.to_owned(),
+        url: expected_url,
+        #[cfg(target_os = "macos")]
+        file_name: asset.name.clone(),
+        size: asset.size,
+        sha256: sha256_from_digest(digest)?,
+    })
+}
+
+fn sha256_from_digest(digest: &str) -> ResultType<String> {
+    let Some(hex) = digest.strip_prefix("sha256:") else {
+        bail!("Fork asset digest is not sha256");
+    };
+    if hex.len() != 64 || !hex.chars().all(|c| c.is_ascii_hexdigit()) {
+        bail!("Fork asset digest is not a sha256 hex string");
+    }
+    Ok(hex.to_ascii_lowercase())
+}
+
+fn fork_asset_matches<'a>(filename: &'a str, arch: &str, format: &str) -> Option<&'a str> {
+    let version = fork_asset_version(filename)?;
+    let suffix = filename.strip_prefix("rustdesk-")?.split_once('-')?.1;
+    if suffix == format!("{arch}.{format}") {
+        Some(version)
+    } else {
+        None
+    }
+}
+
+fn fork_asset_version(filename: &str) -> Option<&str> {
+    let rest = filename.strip_prefix("rustdesk-")?;
+    let (version, suffix) = rest.split_once('-')?;
+    if !is_stable_version(version) || !is_safe_asset_suffix(suffix) {
+        return None;
+    }
+    if suffix.ends_with(".exe")
+        || suffix.ends_with(".msi")
+        || suffix.ends_with(".dmg")
+        || suffix.ends_with(".apk")
+    {
+        Some(version)
+    } else {
+        None
+    }
+}
+
+fn is_stable_version(version: &str) -> bool {
+    let mut parts = version.split('.');
+    let three_numbers = (0..3).all(|_| {
+        matches!(
+            parts.next(),
+            Some(part) if !part.is_empty() && part.chars().all(|c| c.is_ascii_digit())
+        )
+    });
+    three_numbers && parts.next().is_none()
+}
+
+fn is_safe_asset_suffix(suffix: &str) -> bool {
+    !suffix.contains("..")
+        && suffix
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-'))
+}
+
 pub fn get_update_download_file_from_url(url: &str) -> Option<PathBuf> {
     let parsed = url::Url::parse(url).ok()?;
     // Check the raw prefix before Url normalizes default ports.
@@ -177,18 +344,28 @@ pub fn get_update_download_file_from_url(url: &str) -> Option<PathBuf> {
     let tag = segments.next()?;
     let filename = segments.next()?;
 
-    if owner != "rustdesk"
-        || repo != "rustdesk"
-        || releases != "releases"
+    if releases != "releases"
         || download != "download"
-        || tag.is_empty()
         || segments.next().is_some()
-        || !is_plain_update_filename(filename)
+        || !is_allowed_update_asset(owner, repo, tag, filename)
     {
         return None;
     }
 
     Some(std::env::temp_dir().join(filename))
+}
+
+fn is_allowed_update_asset(owner: &str, repo: &str, tag: &str, filename: &str) -> bool {
+    if tag.is_empty() || !is_plain_update_filename(filename) {
+        return false;
+    }
+    if owner == "rustdesk" && repo == "rustdesk" {
+        return true;
+    }
+    owner == crate::branding::UPDATE_OWNER
+        && repo == crate::branding::UPDATE_REPO
+        && tag == crate::branding::UPDATE_TAG
+        && fork_asset_version(filename).is_some()
 }
 
 fn is_plain_update_filename(filename: &str) -> bool {
@@ -238,8 +415,50 @@ mod tests {
             "https://github.com/rustdesk/rustdesk/releases/download/1/rustdesk.exe?download=1",
             "https://github.com/rustdesk/rustdesk/releases/download/1/rustdesk.exe#download",
             "not a url",
+            "https://github.com/arturkmat/rustdesk/releases/download/evil/rustdesk-9.9.9-x86_64.exe",
+            "https://github.com/arturkmat/other/releases/download/dark-smart/rustdesk-9.9.9-x86_64.exe",
         ] {
             assert!(get_update_download_file_from_url(url).is_none(), "{url}");
         }
+    }
+
+    #[test]
+    fn update_download_file_accepts_pinned_fork_asset() {
+        let file = get_update_download_file_from_url(
+            "https://github.com/arturkmat/rustdesk/releases/download/dark-smart/rustdesk-9.9.9-x86_64.exe",
+        )
+        .expect("pinned fork asset");
+        assert_eq!(
+            file.file_name().and_then(|name| name.to_str()),
+            Some("rustdesk-9.9.9-x86_64.exe")
+        );
+    }
+
+    #[test]
+    fn fork_asset_uses_github_digest_and_rejects_a_swapped_url() {
+        let name = "rustdesk-9.9.9-x86_64.exe";
+        let good = ForkAsset {
+            name: name.to_owned(),
+            size: 42,
+            digest: Some(
+                "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+                    .to_owned(),
+            ),
+            browser_download_url: crate::branding::fork_download_url(name),
+        };
+        let artifact =
+            fork_artifact_from_asset(&good, "x86_64", "exe", "1.0.0").expect("pinned asset");
+        assert_eq!(artifact.version, "9.9.9");
+        assert_eq!(artifact.size, 42);
+        assert_eq!(
+            artifact.sha256,
+            "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+        );
+
+        let mut swapped = good;
+        swapped.browser_download_url =
+            "https://github.com/rustdesk/rustdesk/releases/download/9.9.9/rustdesk-9.9.9-x86_64.exe"
+                .to_owned();
+        assert!(fork_artifact_from_asset(&swapped, "x86_64", "exe", "1.0.0").is_err());
     }
 }

@@ -1136,6 +1136,19 @@ fn clear_software_update_url() {
     *update_url = String::new();
 }
 
+fn publish_software_update_url(response_url: &str) {
+    #[cfg(feature = "flutter")]
+    {
+        let mut m = HashMap::new();
+        m.insert("name", "check_software_update_finish");
+        m.insert("url", response_url);
+        if let Ok(data) = serde_json::to_string(&m) {
+            let _ = crate::flutter::push_global_event(crate::flutter::APP_TYPE_MAIN, data);
+        }
+    }
+    *SOFTWARE_UPDATE_URL.lock().unwrap() = response_url.to_owned();
+}
+
 fn process_software_update_check_response(bytes: Bytes) -> ResultType<()> {
     let resp: hbb_common::VersionCheckResponse = serde_json::from_slice(&bytes)?;
     let response_url = resp.url;
@@ -1165,8 +1178,20 @@ fn process_software_update_check_response(bytes: Bytes) -> ResultType<()> {
 pub async fn do_check_software_update() -> hbb_common::ResultType<()> {
     // Stock GitHub releases replace this exe and drop the compiled-in server.
     if crate::branding::locks_server() {
-        clear_software_update_url();
-        return Ok(());
+        return match crate::updater::fork_update_page_if_newer() {
+            Ok(Some(url)) => {
+                publish_software_update_url(&url);
+                Ok(())
+            }
+            Ok(None) => {
+                clear_software_update_url();
+                Ok(())
+            }
+            Err(err) => {
+                clear_software_update_url();
+                Err(err)
+            }
+        };
     }
     let (request, url) =
         hbb_common::version_check_request(hbb_common::VER_TYPE_RUSTDESK_CLIENT.to_string());
