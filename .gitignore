@@ -17,6 +17,10 @@ cert.pfx
 *png
 *svg
 *jpg
+!custom/
+!custom/**
+!pages/
+!pages/**
 sciter.dll
 **pdb
 src/bridge_generated.rs
@@ -60,3 +64,4 @@ flutter/web/
 /third_party/libdrmtap/
 # Local git worktrees
 .worktrees/
+/custom/branding.env
