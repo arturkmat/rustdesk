@@ -1,4 +1,5 @@
-use hbb_common::config::{self, keys};
+use base::config::keys;
+use hbb_common::config;
 
 fn compiled(value: Option<&str>) -> Option<&str> {
     value.map(str::trim).filter(|s| !s.is_empty())
