@@ -1174,10 +1174,14 @@ fn process_software_update_check_response(bytes: Bytes) -> ResultType<()> {
 
 // No need to check `danger_accept_invalid_cert` for now.
 // Because the url is always `https://api.rustdesk.com/version/latest`.
-#[tokio::main(flavor = "current_thread")]
-pub async fn do_check_software_update() -> hbb_common::ResultType<()> {
-    // Stock GitHub releases replace this exe and drop the compiled-in server.
-    if crate::branding::locks_server() {
+pub(crate) fn server_locked_update_uses_fork_feed() -> bool {
+    cfg!(not(any(target_os = "android", target_os = "ios")))
+}
+
+fn locked_server_software_update() -> hbb_common::ResultType<()> {
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
+    {
+        debug_assert!(server_locked_update_uses_fork_feed());
         return match crate::updater::fork_update_page_if_newer() {
             Ok(Some(url)) => {
                 publish_software_update_url(&url);
@@ -1192,6 +1196,22 @@ pub async fn do_check_software_update() -> hbb_common::ResultType<()> {
                 Err(err)
             }
         };
+    }
+    #[cfg(any(target_os = "android", target_os = "ios"))]
+    {
+        debug_assert!(!server_locked_update_uses_fork_feed());
+        // No in-app installer here. Leave the public feed empty so it cannot
+        // replace a server-locked mobile build.
+        clear_software_update_url();
+        Ok(())
+    }
+}
+
+#[tokio::main(flavor = "current_thread")]
+pub async fn do_check_software_update() -> hbb_common::ResultType<()> {
+    // Stock GitHub releases replace this exe and drop the compiled-in server.
+    if crate::branding::locks_server() {
+        return locked_server_software_update();
     }
     let (request, url) =
         hbb_common::version_check_request(hbb_common::VER_TYPE_RUSTDESK_CLIENT.to_string());
@@ -3119,6 +3139,14 @@ mod tests {
         time::{interval, interval_at, sleep, Duration, Instant, Interval},
     };
     use std::collections::HashSet;
+
+    #[test]
+    fn server_locked_update_feed_matches_updater_availability() {
+        assert_eq!(
+            server_locked_update_uses_fork_feed(),
+            cfg!(not(any(target_os = "android", target_os = "ios")))
+        );
+    }
 
     #[test]
     fn parses_stable_rustdesk_release_url() {
