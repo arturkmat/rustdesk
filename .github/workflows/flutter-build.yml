@@ -12,6 +12,9 @@ on:
       publish-update-metadata:
         type: boolean
         default: false
+      publish-release:
+        type: boolean
+        default: true
 
 # NOTE: F-Droid builder script 'flutter/build_fdroid.sh' reads environment
 # variables from this workflow!
@@ -55,6 +58,7 @@ env:
   MACOS_P12_BASE64: "${{ secrets.MACOS_P12_BASE64 }}"
   UPLOAD_ARTIFACT: "${{ inputs.upload-artifact }}"
   PUBLISH_UPDATE_METADATA: "${{ inputs.publish-update-metadata }}"
+  PUBLISH_RELEASE: "${{ inputs.publish-release }}"
   SIGN_BASE_URL: "${{ secrets.SIGN_BASE_URL }}-2"
   RENDEZVOUS_SERVER: "${{ secrets.RENDEZVOUS_SERVER }}"
   RELAY_SERVER: "${{ secrets.RELAY_SERVER }}"
@@ -120,7 +124,7 @@ jobs:
 
       - name: Publish Release
         uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
-        if: env.UPLOAD_ARTIFACT == 'true'
+        if: env.UPLOAD_ARTIFACT == 'true' && env.PUBLISH_RELEASE == 'true'
         with:
           prerelease: true
           tag_name: ${{ env.TAG_NAME }}
@@ -568,9 +572,19 @@ jobs:
           path: ./SignOutput/rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.msi
           if-no-files-found: error
 
+      - name: Upload Windows installers
+        if: env.UPLOAD_ARTIFACT == 'true' && env.PUBLISH_RELEASE != 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}-windows
+          path: |
+            ./SignOutput/rustdesk-*.msi
+            ./SignOutput/rustdesk-*.exe
+          if-no-files-found: error
+
       - name: Publish Release
         uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
-        if: env.UPLOAD_ARTIFACT == 'true' && env.PUBLISH_UPDATE_METADATA != 'true'
+        if: env.UPLOAD_ARTIFACT == 'true' && env.PUBLISH_UPDATE_METADATA != 'true' && env.PUBLISH_RELEASE == 'true'
         with:
           prerelease: true
           tag_name: ${{ env.TAG_NAME }}
@@ -784,7 +798,7 @@ jobs:
 
       - name: Publish Release
         uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
-        if: env.UPLOAD_ARTIFACT == 'true' && env.PUBLISH_UPDATE_METADATA != 'true'
+        if: env.UPLOAD_ARTIFACT == 'true' && env.PUBLISH_UPDATE_METADATA != 'true' && env.PUBLISH_RELEASE == 'true'
         with:
           prerelease: true
           tag_name: ${{ env.TAG_NAME }}
@@ -1178,7 +1192,7 @@ jobs:
           if-no-files-found: error
 
       - name: Publish DMG package
-        if: env.UPLOAD_ARTIFACT == 'true' && env.PUBLISH_UPDATE_METADATA != 'true'
+        if: env.UPLOAD_ARTIFACT == 'true' && env.PUBLISH_UPDATE_METADATA != 'true' && env.PUBLISH_RELEASE == 'true'
         uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
         with:
           prerelease: true
@@ -1288,6 +1302,7 @@ jobs:
             --release-base-url https://github.com/rustdesk/rustdesk/releases/download
 
       - name: Upload signed update artifacts
+        if: env.PUBLISH_RELEASE == 'true'
         uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
         with:
           prerelease: true
@@ -1305,6 +1320,7 @@ jobs:
       # The release action replaces same-name assets, so keep published sidecars
       # until replacements are ready.
       - name: Upload signed update metadata signature
+        if: env.PUBLISH_RELEASE == 'true'
         uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
         with:
           prerelease: true
@@ -1314,6 +1330,7 @@ jobs:
 
       # Clients discover the release through metadata, so publish it only after every referenced asset.
       - name: Publish signed update metadata
+        if: env.PUBLISH_RELEASE == 'true'
         uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
         with:
           prerelease: true
@@ -1401,6 +1418,7 @@ jobs:
           tar czf rustdesk-${{ env.VERSION }}-unsigned.tar.gz *.dmg windows-x86_64 windows-aarch64 windows-x86 msi-template "${packer_template[@]}"
 
       - name: Publish unsigned app
+        if: env.PUBLISH_RELEASE == 'true'
         uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
         with:
           prerelease: true
@@ -1684,7 +1702,7 @@ jobs:
           path: ${{steps.sign-rustdesk.outputs.signedReleaseFile}}
 
       - name: Publish signed apk package
-        if: env.ANDROID_SIGNING_KEY != '' && env.UPLOAD_ARTIFACT == 'true'
+        if: env.ANDROID_SIGNING_KEY != '' && env.UPLOAD_ARTIFACT == 'true' && env.PUBLISH_RELEASE == 'true'
         uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
         with:
           prerelease: true
@@ -1692,8 +1710,16 @@ jobs:
           files: |
             ${{steps.sign-rustdesk.outputs.signedReleaseFile}}
 
+      - name: Upload unsigned apk artifact
+        if: env.ANDROID_SIGNING_KEY == '' && env.UPLOAD_ARTIFACT == 'true' && env.PUBLISH_RELEASE != 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.apk
+          path: signed-apk/rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.apk
+          if-no-files-found: error
+
       - name: Publish unsigned apk package
-        if: env.ANDROID_SIGNING_KEY == '' && env.UPLOAD_ARTIFACT == 'true'
+        if: env.ANDROID_SIGNING_KEY == '' && env.UPLOAD_ARTIFACT == 'true' && env.PUBLISH_RELEASE == 'true'
         uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
         with:
           prerelease: true
@@ -1869,7 +1895,7 @@ jobs:
           path: ${{steps.sign-rustdesk.outputs.signedReleaseFile}}
 
       - name: Publish signed apk package
-        if: env.ANDROID_SIGNING_KEY != '' && env.UPLOAD_ARTIFACT == 'true'
+        if: env.ANDROID_SIGNING_KEY != '' && env.UPLOAD_ARTIFACT == 'true' && env.PUBLISH_RELEASE == 'true'
         uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
         with:
           prerelease: true
@@ -1877,8 +1903,16 @@ jobs:
           files: |
             ${{steps.sign-rustdesk.outputs.signedReleaseFile}}
 
+      - name: Upload unsigned universal apk artifact
+        if: env.ANDROID_SIGNING_KEY == '' && env.UPLOAD_ARTIFACT == 'true' && env.PUBLISH_RELEASE != 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: rustdesk-${{ env.VERSION }}-universal${{ env.suffix }}.apk
+          path: signed-apk/rustdesk-${{ env.VERSION }}-universal${{ env.suffix }}.apk
+          if-no-files-found: error
+
       - name: Publish unsigned apk package
-        if: env.ANDROID_SIGNING_KEY == '' && env.UPLOAD_ARTIFACT == 'true'
+        if: env.ANDROID_SIGNING_KEY == '' && env.UPLOAD_ARTIFACT == 'true' && env.PUBLISH_RELEASE == 'true'
         uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
         with:
           prerelease: true
@@ -2187,7 +2221,7 @@ jobs:
             done
 
       - name: Publish debian/rpm package
-        if: env.UPLOAD_ARTIFACT == 'true'
+        if: env.UPLOAD_ARTIFACT == 'true' && env.PUBLISH_RELEASE == 'true'
         uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
         with:
           prerelease: true
@@ -2223,7 +2257,7 @@ jobs:
             cd res && HBB=`pwd`/.. FLUTTER=1 makepkg -f
 
       - name: Publish archlinux package
-        if: matrix.job.arch == 'x86_64' && env.UPLOAD_ARTIFACT == 'true'
+        if: matrix.job.arch == 'x86_64' && env.UPLOAD_ARTIFACT == 'true' && env.PUBLISH_RELEASE == 'true'
         uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
         with:
           prerelease: true
@@ -2539,7 +2573,7 @@ jobs:
         shell: bash
 
       - name: Publish debian package
-        if: env.UPLOAD_ARTIFACT == 'true'
+        if: env.UPLOAD_ARTIFACT == 'true' && env.PUBLISH_RELEASE == 'true'
         uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
         with:
           prerelease: true
@@ -2784,7 +2818,7 @@ jobs:
           done
 
       - name: Publish debian package
-        if: env.UPLOAD_ARTIFACT == 'true'
+        if: env.UPLOAD_ARTIFACT == 'true' && env.PUBLISH_RELEASE == 'true'
         uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
         with:
           prerelease: true
@@ -2844,7 +2878,7 @@ jobs:
           cmp AppDir/AppRun appimage-build/AppRun/v2.0.0/AppRun-Release-${{ matrix.job.arch }}
 
       - name: Publish appimage package
-        if: env.UPLOAD_ARTIFACT == 'true'
+        if: env.UPLOAD_ARTIFACT == 'true' && env.PUBLISH_RELEASE == 'true'
         uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
         with:
           prerelease: true
@@ -2930,6 +2964,7 @@ jobs:
             flatpak build-bundle ./repo rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}${{ matrix.job.suffix }}.flatpak com.rustdesk.RustDesk
 
       - name: Publish flatpak package
+        if: env.PUBLISH_RELEASE == 'true'
         uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
         with:
           prerelease: true
@@ -3014,7 +3049,7 @@ jobs:
           popd
 
       - name: Publish web
-        if: env.UPLOAD_ARTIFACT == 'true'
+        if: env.UPLOAD_ARTIFACT == 'true' && env.PUBLISH_RELEASE == 'true'
         uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
         with:
           prerelease: true
