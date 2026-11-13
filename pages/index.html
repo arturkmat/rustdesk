@@ -141,9 +141,9 @@
     }
     .file {
       display: flex;
-      justify-content: space-between;
-      gap: 10px;
-      align-items: center;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
       color: var(--text);
       text-decoration: none;
       border: 1px solid var(--line);
@@ -270,6 +270,71 @@
       return s;
     }
 
+    function parseVersion(name) {
+      const match = String(name).match(/rustdesk-(\d+)\.(\d+)\.(\d+)/i);
+      if (!match) return null;
+      return [Number(match[1]), Number(match[2]), Number(match[3])];
+    }
+
+    function compareVersions(nameA, nameB) {
+      const a = parseVersion(nameA);
+      const b = parseVersion(nameB);
+      if (!a && !b) return 0;
+      if (!a) return -1;
+      if (!b) return 1;
+      for (let i = 0; i < 3; i++) {
+        if (a[i] !== b[i]) return a[i] - b[i];
+      }
+      return 0;
+    }
+
+    function installerVariant(name) {
+      const n = name.toLowerCase();
+      let kind = "other";
+      if (n.endsWith(".msi")) kind = "msi";
+      else if (n.endsWith(".exe")) kind = "exe";
+      else if (n.endsWith(".dmg")) kind = "dmg";
+      else if (n.endsWith(".deb")) kind = "deb";
+      else if (n.endsWith(".rpm")) kind = "rpm";
+      else if (n.endsWith(".appimage")) kind = "appimage";
+      else if (n.endsWith(".flatpak")) kind = "flatpak";
+      else if (n.endsWith(".apk")) kind = "apk";
+      else if (n.endsWith(".pkg.tar.zst")) kind = "arch";
+      let arch = "any";
+      if (n.includes("universal")) arch = "universal";
+      else if (n.includes("aarch64")) arch = "aarch64";
+      else if (n.includes("armv7")) arch = "armv7";
+      else if (n.includes("x86_64")) arch = "x86_64";
+      else if (n.includes("-x86-") || n.includes("-x86.")) arch = "x86";
+      const ui = n.includes("sciter") ? "sciter" : "flutter";
+      return kind + "|" + arch + "|" + ui;
+    }
+
+    function preferNewest(assets) {
+      const chosen = new Map();
+      const ties = [];
+      for (const asset of assets) {
+        const key = installerVariant(asset.name);
+        const prev = chosen.get(key);
+        if (!prev) {
+          chosen.set(key, asset);
+          continue;
+        }
+        const cmp = compareVersions(asset.name, prev.name);
+        if (cmp > 0) chosen.set(key, asset);
+        else if (cmp === 0) ties.push(asset);
+      }
+      return [...chosen.values(), ...ties];
+    }
+
+    function sortFor(assets, want) {
+      return preferNewest(assets).sort((a, b) => {
+        const byVersion = compareVersions(b.name, a.name);
+        if (byVersion) return byVersion;
+        return score(b, want) - score(a, want);
+      });
+    }
+
     function formatSize(bytes) {
       if (!bytes) return "";
       if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + " KB";
@@ -297,6 +362,11 @@
       return parts.join(" · ") || name;
     }
 
+    function versionText(name) {
+      const version = parseVersion(name);
+      return version ? version.join(".") : "";
+    }
+
     function renderFiles(os, assets) {
       const root = cards[os];
       root.innerHTML = "";
@@ -308,7 +378,8 @@
         const a = document.createElement("a");
         a.className = "file";
         a.href = asset.browser_download_url;
-        a.innerHTML = `<b>${prettyName(asset.name)}</b><span>${formatSize(asset.size)}</span>`;
+        const meta = [versionText(asset.name), formatSize(asset.size)].filter(Boolean).join(" · ");
+        a.innerHTML = `<b>${prettyName(asset.name)}</b><span>${meta}</span>`;
         root.appendChild(a);
       }
     }
@@ -331,14 +402,19 @@
           if (os) grouped[os].push(asset);
         }
         for (const os of Object.keys(grouped)) {
-          grouped[os].sort((a, b) => score(b, want) - score(a, want));
+          grouped[os] = sortFor(grouped[os], want);
           renderFiles(os, grouped[os]);
         }
         const best = grouped[want.os][0];
         if (best) {
+          const ver = versionText(best.name);
           primary.href = best.browser_download_url;
-          primary.textContent = "Pobierz dla " + labels[want.os];
-          status.textContent = "Najnowsze wydanie: " + (release.name || release.tag_name);
+          primary.textContent = ver
+            ? "Pobierz wersję " + ver + " dla " + labels[want.os]
+            : "Pobierz dla " + labels[want.os];
+          status.textContent = ver
+            ? "Najnowsza wersja: " + ver
+            : "Najnowsze wydanie: " + (release.name || release.tag_name);
           status.classList.remove("error");
         } else {
           status.textContent = "Dla " + labels[want.os] + " nie ma jeszcze instalatora w tym wydaniu. Zostawione są dostępne paczki poniżej.";
