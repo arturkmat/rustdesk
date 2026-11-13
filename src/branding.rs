@@ -1,4 +1,5 @@
-use hbb_common::config::{self, keys};
+use base::config::keys;
+use hbb_common::config;
 
 fn compiled(value: Option<&str>) -> Option<&str> {
     value.map(str::trim).filter(|s| !s.is_empty())
@@ -33,12 +34,20 @@ pub fn apply() {
     }
     drop(overwrite);
 
-    if rendezvous.is_some() || relay.is_some() || api.is_some() || key.is_some() {
+    if locks_server() {
         config::BUILTIN_SETTINGS
             .write()
             .unwrap()
             .insert(keys::OPTION_HIDE_SERVER_SETTINGS.to_owned(), "Y".to_owned());
     }
+}
+
+/// This binary was built with the self-hosted server compiled in.
+pub fn locks_server() -> bool {
+    compiled(option_env!("RENDEZVOUS_SERVER")).is_some()
+        || compiled(option_env!("RELAY_SERVER")).is_some()
+        || compiled(option_env!("API_SERVER")).is_some()
+        || compiled(option_env!("RS_PUB_KEY")).is_some()
 }
 
 /// Keep the API access token off the hbbs punch/relay path.
@@ -48,4 +57,26 @@ pub fn apply() {
 /// handshake is what fails while logged-out UDP sessions still work.
 pub fn rendezvous_token(_access_token: &str) -> &str {
     ""
+}
+
+pub const UPDATE_OWNER: &str = "arturkmat";
+pub const UPDATE_REPO: &str = "rustdesk";
+pub const UPDATE_TAG: &str = "dark-smart";
+
+pub fn update_release_page_url() -> String {
+    format!("https://github.com/{UPDATE_OWNER}/{UPDATE_REPO}/releases/tag/{UPDATE_TAG}")
+}
+
+pub fn is_fork_update_page(url: &str) -> bool {
+    url.trim_end_matches('/') == update_release_page_url()
+}
+
+pub fn fork_release_api_url() -> String {
+    format!("https://api.github.com/repos/{UPDATE_OWNER}/{UPDATE_REPO}/releases/tags/{UPDATE_TAG}")
+}
+
+pub fn fork_download_url(filename: &str) -> String {
+    format!(
+        "https://github.com/{UPDATE_OWNER}/{UPDATE_REPO}/releases/download/{UPDATE_TAG}/{filename}"
+    )
 }
