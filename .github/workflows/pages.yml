@@ -7,22 +7,41 @@ on:
     paths:
       - "pages/**"
       - ".github/workflows/pages.yml"
+  pull_request:
+    paths:
+      - "pages/**"
+      - ".github/workflows/pages.yml"
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  test:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Check download page picks the newest version
+        run: node pages/download.test.js
+
   deploy:
+    needs: test
+    if: github.event_name != 'pull_request'
     timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Keep the test file out of the published site
+        run: rm pages/download.test.js
 
       - name: Publish pages branch
         uses: peaceiris/actions-gh-pages@84c30a85c19949d7eee79c4ff27748b70285e453 # v4.1.0
